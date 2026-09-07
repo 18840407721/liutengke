@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多维表格翻译助手</title>
+<style>
+  :root {
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --font: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Tahoma,
+      "PingFang SC", "Microsoft Yahei", Arial, "Hiragino Sans GB", sans-serif,
+      "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+    --space-5: 20px; --space-6: 24px; --space-8: 32px;
+  }
+  :root[data-theme="light"] {
+    --bg: #ffffff;
+    --bg-subtle: #f5f6f7;
+    --bg-hover: rgba(31, 35, 41, 0.08);
+    --bg-active: rgba(31, 35, 41, 0.13);
+    --text-1: #1f2329;
+    --text-2: #646a73;
+    --text-3: #8f959e;
+    --text-disabled: #c0c4cc;
+    --border: #dee0e3;
+    --border-strong: #c3c6cc;
+    --primary: #1456f0;
+    --primary-hover: #3370ff;
+    --primary-press: #0f44c6;
+    --primary-subtle: rgba(20, 86, 240, 0.1);
+    --success: #34c724;
+    --warning: #ffa526;
+    --danger: #f54a45;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+  :root[data-theme="dark"] {
+    --bg: #1f2329;
+    --bg-subtle: #272b32;
+    --bg-hover: rgba(255, 255, 255, 0.08);
+    --bg-active: rgba(255, 255, 255, 0.13);
+    --text-1: #f7f8fa;
+    --text-2: #ababab;
+    --text-3: #7a7f87;
+    --text-disabled: #5a5f68;
+    --border: #42464d;
+    --border-strong: #5a5f68;
+    --primary: #4571e1;
+    --primary-hover: #5b82ea;
+    --primary-press: #3a5fcc;
+    --primary-subtle: rgba(69, 113, 225, 0.18);
+    --success: #4cc249;
+    --warning: #e69a3e;
+    --danger: #f76560;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text-1);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .app { max-width: 680px; margin: 0 auto; padding: var(--space-5) var(--space-4) 48px; min-height: 100%; }
+
+  /* ===== Header ===== */
+  .app-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: var(--space-4); border-bottom: 1px solid var(--border);
+  }
+  .brand { display: flex; align-items: center; gap: var(--space-3); }
+  .brand-icon {
+    width: 36px; height: 36px; border-radius: var(--radius-md);
+    background: var(--primary); color: #fff; font-weight: 600; font-size: 16px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .brand-title { font-size: 16px; font-weight: 600; color: var(--text-1); line-height: 1.3; }
+  .brand-sub { font-size: 12px; color: var(--text-3); line-height: 1.3; margin-top: 2px; }
+
+  /* ===== Tabs ===== */
+  .tabs {
+    display: flex; gap: var(--space-2); padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--border); margin-bottom: var(--space-5);
+  }
+  .tab {
+    border: none; background: transparent; cursor: pointer;
+    font-size: 14px; color: var(--text-2); padding: 6px 12px;
+    border-radius: var(--radius-sm); font-family: inherit; transition: background .2s, color .2s;
+  }
+  .tab:hover { background: var(--bg-hover); color: var(--text-1); }
+  .tab.active {
+    color: var(--primary); background: var(--primary-subtle); font-weight: 500;
+  }
+
+  /* ===== Panels ===== */
+  .panel.hidden { display: none; }
+
+  .card {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: var(--space-5);
+    margin-bottom: var(--space-4);
+  }
+  .card-title { font-size: 15px; font-weight: 600; margin-bottom: var(--space-4); }
+  .section-label { font-size: 13px; font-weight: 500; color: var(--text-1); margin-bottom: var(--space-2); }
+  .section-hint { font-size: 12px; color: var(--text-3); margin-bottom: var(--space-2); line-height: 1.6; }
+
+  /* ===== Form ===== */
+  .form-row { margin-bottom: var(--space-4); }
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+  @media (max-width: 520px) { .field-grid { grid-template-columns: 1fr; } }
+  .label { display: block; font-size: 12px; color: var(--text-2); margin-bottom: var(--space-1); }
+  .input, .select, .textarea {
+    width: 100%; font-size: 14px; color: var(--text-1);
+    background: var(--bg); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm); padding: 7px 12px;
+    font-family: inherit; outline: none; transition: border-color .2s, box-shadow .2s;
+  }
+  .input:focus, .select:focus, .textarea:focus {
+    border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-subtle);
+  }
+  .input::placeholder, .textarea::placeholder { color: var(--text-disabled); }
+  .textarea { resize: vertical; min-height: 96px; line-height: 1.6; }
+  .select { cursor: pointer; appearance: auto; }
+  .secret-wrap { position: relative; }
+  .secret-toggle {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    border: none; background: none; cursor: pointer; color: var(--text-3);
+    font-size: 12px; padding: 2px 4px;
+  }
+  .secret-toggle:hover { color: var(--text-1); }
+
+  /* ===== Buttons ===== */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    font-size: 14px; font-family: inherit; font-weight: 500;
+    border-radius: var(--radius-sm); border: 1px solid transparent;
+    padding: 7px 16px; cursor: pointer; transition: background .2s, border-color .2s, color .2s, opacity .2s;
+    white-space: nowrap;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+  .btn-primary:active:not(:disabled) { background: var(--primary-press); }
+  .btn-secondary { background: var(--bg); color: var(--text-1); border-color: var(--border-strong); }
+  .btn-secondary:hover:not(:disabled) { background: var(--bg-hover); }
+  .btn-danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+  .btn-danger:hover:not(:disabled) { background: rgba(245, 74, 69, 0.08); }
+  .btn-sm { padding: 5px 10px; font-size: 13px; }
+  .btn-block { width: 100%; }
+  .btn-row { display: flex; gap: var(--space-3); margin-top: var(--space-3); }
+  .text-btn {
+    border: none; background: none; color: var(--primary); cursor: pointer;
+    font-size: 13px; font-family: inherit; padding: 2px 4px; border-radius: var(--radius-sm);
+  }
+  .text-btn:hover { background: var(--primary-subtle); }
+  .text-btn:disabled { color: var(--text-disabled); cursor: not-allowed; background: none; }
+
+  /* ===== Notice / Toast ===== */
+  .notice {
+    display: flex; gap: var(--space-3); align-items: flex-start;
+    border-radius: var(--radius-md); padding: var(--space-3) var(--space-4);
+    font-size: 13px; line-height: 1.6; margin-bottom: var(--space-4);
+    border: 1px solid transparent;
+  }
+  .notice-info { background: var(--primary-subtle); color: var(--primary); }
+  .notice-warning { background: rgba(255, 165, 38, 0.12); color: var(--warning); border-color: rgba(255, 165, 38, 0.25); }
+  .notice-error { background: rgba(245, 74, 69, 0.1); color: var(--danger); border-color: rgba(245, 74, 69, 0.25); }
+  .notice-success { background: rgba(52, 199, 36, 0.1); color: var(--success); border-color: rgba(52, 199, 36, 0.25); }
+  .notice .notice-icon { flex-shrink: 0; line-height: 1.6; }
+
+  .toast-wrap {
+    position: fixed; top: 32px; left: 50%; transform: translateX(-50%);
+    z-index: 100; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    pointer-events: none;
+  }
+  .toast {
+    background: var(--bg); color: var(--text-1); border: 1px solid var(--border);
+    border-radius: var(--radius-md); box-shadow: var(--shadow);
+    padding: 10px 16px; font-size: 13px; max-width: 420px;
+    opacity: 0; transition: opacity .25s, transform .25s; transform: translateY(-6px);
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.toast-error { border-color: var(--danger); }
+  .toast.toast-success { border-color: var(--success); }
+
+  /* ===== Translate result ===== */
+  .translate-actions { display: flex; gap: var(--space-2); margin-top: var(--space-2); align-items: flex-start; }
+  .result-box {
+    margin-top: var(--space-4); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: var(--space-4); min-height: 56px;
+    white-space: pre-wrap; word-break: break-word; font-size: 14px; line-height: 1.7;
+    position: relative;
+  }
+  .result-box .copy-btn {
+    position: absolute; top: 8px; right: 8px;
+    border: 1px solid var(--border-strong); background: var(--bg);
+    color: var(--text-2); border-radius: var(--radius-sm);
+    font-size: 12px; padding: 2px 8px; cursor: pointer; font-family: inherit;
+  }
+  .result-box .copy-btn:hover { color: var(--text-1); border-color: var(--text-2); }
+  .result-history-title { font-size: 13px; font-weight: 500; margin-top: var(--space-4); color: var(--text-2); }
+  .result-history { margin-top: var(--space-2); }
+  .history-item {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: var(--space-3); margin-bottom: var(--space-3); font-size: 13px;
+  }
+  .history-item .hi-src { color: var(--text-3); margin-bottom: 4px; word-break: break-all; }
+  .history-item .hi-dst { color: var(--text-1); word-break: break-all; }
+
+  /* ===== Fields list ===== */
+  .fields-list { border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; margin-top: var(--space-2); }
+  .field-item {
+    display: flex; align-items: center; gap: var(--space-3); padding: 9px 12px;
+    border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .field-item:last-child { border-bottom: none; }
+  .field-item:hover { background: var(--bg-hover); }
+  .field-item .field-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .field-item .field-badge {
+    font-size: 11px; color: var(--text-2); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm); padding: 1px 6px; flex-shrink: 0;
+  }
+  .field-item input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0; }
+  .field-item.is-primary .field-name { color: var(--primary); font-weight: 500; }
+
+  /* ===== Progress ===== */
+  .progress-wrap { margin-top: var(--space-4); }
+  .progress-track { height: 6px; background: var(--bg-subtle); border-radius: 3px; overflow: hidden; }
+  .progress-bar {
+    height: 100%; width: 0%; background: var(--primary);
+    border-radius: 3px; transition: width .2s;
+  }
+  .progress-text { font-size: 12px; color: var(--text-2); margin-top: var(--space-2); }
+
+  /* ===== Empty state ===== */
+  .empty {
+    text-align: center; padding: 40px 20px; color: var(--text-3);
+  }
+  .empty .empty-icon { width: 56px; height: 56px; margin: 0 auto 12px; opacity: 0.5; }
+
+  /* ===== Help ===== */
+  .help-block { margin-bottom: var(--space-5); }
+  .help-block h3 { font-size: 14px; font-weight: 600; margin-bottom: var(--space-2); display: flex; align-items: center; gap: 8px; }
+  .help-block ol, .help-block ul { padding-left: 20px; font-size: 13px; color: var(--text-2); line-height: 1.8; }
+  .help-block li { margin-bottom: 4px; }
+  .url-code {
+    display: inline-block; background: var(--bg-subtle); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 2px 8px; font-size: 12px;
+    color: var(--text-1); word-break: break-all; line-height: 1.8; margin: 2px 0;
+  }
+  .help-kv { display: flex; gap: var(--space-2); align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+  .help-kv .hk-key { font-weight: 500; color: var(--text-1); width: 88px; flex-shrink: 0; }
+  .help-kv .hk-val { color: var(--text-2); font-size: 12px; }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: var(--space-4) 0; }
+
+  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">译</div>
+      <div>
+        <div class="brand-title">多维表格翻译助手</div>
+        <div class="brand-sub">字段翻译 · 边栏即时翻译（MyMemory 免费直连）</div>
+      </div>
+    </div>
+    <button class="btn btn-secondary btn-sm" id="themeBtn" type="button"></button>
+  </header>
+
+  <!-- Tabs -->
+  <nav class="tabs">
+    <button class="tab active" data-panel="instant" type="button">即时翻译</button>
+    <button class="tab" data-panel="field" type="button">字段翻译</button>
+    <button class="tab" data-panel="help" type="button">使用说明</button>
+  </nav>
+
+  <!-- ============ Panel: 即时翻译 ============ -->
+  <section id="panel-instant" class="panel">
+    <div class="card">
+      <div class="card-title">边栏即时翻译</div>
+      <div class="field-grid">
+        <div class="form-row">
+          <label class="label" for="srcLang1">源语言</label>
+          <select class="select" id="srcLang1"></select>
+        </div>
+        <div class="form-row">
+          <label class="label" for="tgtLang1">目标语言</label>
+          <select class="select" id="tgtLang1"></select>
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom:0;">
+        <label class="label" for="inputText">输入文本</label>
+        <textarea class="textarea" id="inputText" placeholder="输入需要翻译的文本…"></textarea>
+      </div>
+      <div class="translate-actions">
+        <button class="btn btn-primary" id="translateBtn" type="button">翻译</button>
+        <button class="btn btn-secondary" id="swapLangBtn" type="button">互换语言</button>
+        <button class="btn btn-secondary" id="clearResultBtn" type="button" style="display:none;">清空</button>
+      </div>
+      <div class="result-box hidden" id="resultBox">
+        <button class="copy-btn" id="copyResultBtn" type="button">复制</button>
+        <div id="resultContent"></div>
+      </div>
+      <div class="result-history-title" id="historyTitle" style="display:none;">最近翻译</div>
+      <div class="result-history" id="historyArea"></div>
+    </div>
+  </section>
+
+  <!-- ============ Panel: 字段翻译 ============ -->
+  <section id="panel-field" class="panel hidden">
+    <div class="notice notice-warning">
+      <span class="notice-icon">⚠</span>
+      <div>字段翻译基于飞书开放平台 REST API：需要企业自建应用凭证（App ID / App Secret），并在开发者后台为该应用开通多维表格读写权限、创建版本发布且由管理员审核通过后，本插件才能读写数据。独立于边栏插件 SDK，可脱离 iframe 注入使用。</div>
+    </div>
+
+    <!-- 配置 -->
+    <div class="card">
+      <div class="card-title">一、应用与表格配置</div>
+      <div class="notice notice-info" style="margin-bottom:16px;">
+        <span class="notice-icon">i</span>
+        <div>所有配置仅保存在当前浏览器（本机），不会上传到任何服务器。</div>
+      </div>
+
+      <div class="form-row">
+        <label class="label" for="cfgAppId">App ID（应用凭证）</label>
+        <input class="input" id="cfgAppId" placeholder="cli_xxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="form-row">
+        <label class="label" for="cfgAppSecret">App Secret（应用凭证）</label>
+        <div class="secret-wrap">
+          <input class="input" id="cfgAppSecret" type="password" placeholder="xxxxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+          <button class="secret-toggle" id="secretToggle" type="button">显示</button>
+        </div>
+      </div>
+      <div class="field-grid">
+        <div class="form-row">
+          <label class="label" for="cfgAppToken">app_token（多维表格唯一标识）</label>
+          <input class="input" id="cfgAppToken" placeholder="如 base/ 后面的 26 位字符串" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="form-row">
+          <label class="label" for="cfgTableId">table_id（数据表标识）</label>
+          <input class="input" id="cfgTableId" placeholder="如 tblxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+      <div class="field-grid">
+        <div class="form-row">
+          <label class="label" for="srcLang2">字段源语言</label>
+          <select class="select" id="srcLang2"></select>
+        </div>
+        <div class="form-row">
+          <label class="label" for="tgtLang2">目标语言</label>
+          <select class="select" id="tgtLang2"></select>
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom:0;">
+        <label class="label" for="concurrency">翻译并发数（MyMemory 免费接口限流较严，建议 1-3）</label>
+        <input class="input" id="concurrency" type="number" min="1" max="5" value="2" style="max-width:120px;">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="connectBtn" type="button">连接并加载字段</button>
+      </div>
+    </div>
+
+    <!-- 字段选择 -->
+    <div class="card hidden" id="fieldCard">
+      <div class="toolbar">
+        <div class="card-title" style="margin-bottom:0;">二、选择要翻译的文本字段</div>
+      </div>
+      <div class="section-hint" id="fieldMetaHint" style="margin-top:4px;"></div>
+      <div class="btn-row" style="margin:8px 0 4px;">
+        <button class="text-btn" id="selectAllBtn" type="button">全选</button>
+        <button class="text-btn" id="selectNoneBtn" type="button">清空</button>
+      </div>
+      <div class="fields-list" id="fieldsList"></div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary btn-block" id="runBtn" type="button">开始批量翻译并回填</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary btn-block" id="previewBtn" type="button">仅预览（不写入）</button>
+      </div>
+
+      <div class="progress-wrap" id="progressWrap" style="display:none;">
+        <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="progress-text" id="progressText"></div>
+      </div>
+    </div>
+
+    <!-- 预览结果 -->
+    <div class="card hidden" id="previewCard">
+      <div class="card-title">翻译结果预览（未写入表格）</div>
+      <div class="section-hint" id="previewHint"></div>
+      <div class="result-history" id="previewArea"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="previewWriteBtn" type="button">确认写入表格</button>
+        <button class="btn btn-secondary" id="previewCloseBtn" type="button">关闭预览</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Panel: 使用说明 ============ -->
+  <section id="panel-help" class="panel hidden">
+    <div class="card">
+      <div class="card-title">使用说明</div>
+
+      <div class="help-block">
+        <h3>1. App ID / App Secret 在哪里获取？</h3>
+        <ol>
+          <li>打开飞书开放平台 <b>open.feishu.cn</b>，进入「开发者后台」。</li>
+          <li>创建「企业自建应用」（或选择已有的自建应用），进入该应用。</li>
+          <li>左侧「凭证与基础信息」页面即可看到 <b>App ID</b> 和 <b>App Secret</b>。</li>
+        </ol>
+        <div class="help-kv" style="margin-top:8px;"><span class="hk-key">App ID</span><span class="hk-val">形如 cli_xxxxxxxxxxx</span></div>
+        <div class="help-kv"><span class="hk-key">App Secret</span><span class="hk-val">形如一段长随机字符串</span></div>
+      </div>
+
+      <div class="help-block">
+        <h3>2. 还需要开通哪些权限？</h3>
+        <ol>
+          <li>在应用「权限管理」中搜索并添加多维表格相关权限，至少需要：
+            <ul>
+              <li><span class="url-code" style="display:inline">bitable:app</span>（查看多维表格）</li>
+              <li><span class="url-code" style="display:inline">bitable:app:readonly</span> 或写入相关权限（如需回写记录）</li>
+            </ul>
+          </li>
+          <li>在「版本管理与发布」中创建版本并发布，需由企业管理员审核通过后，应用才能实际调用接口。</li>
+        </ol>
+      </div>
+
+      <div class="help-block">
+        <h3>3. app_token 在哪里获取？</h3>
+        <p class="section-hint" style="margin:0 0 8px;">打开目标多维表格，地址栏 URL 形如：</p>
+        <div class="url-code">https://xxx.feishu.cn/base/<b>xxxxxxxxxxxxxxxxxxxxxxxxxx</b>?table=tblxxxx&view=vewxxxx</div>
+        <p class="section-hint" style="margin:10px 0 4px;">其中 <b>/base/</b> 后面、第一个 <code>?</code> 之前的字符串，就是 <b>app_token</b>（约 26 位）。</p>
+        <div class="notice notice-warning" style="margin:12px 0 0;">
+          <span class="notice-icon">!</span>
+          <div>注意：如果 URL 路径是 <code>/wiki/</code>，则需要先通过「开发工具」插件或把文档加入多维表格后，再复制 <code>/base/</code> 形式的链接获取 app_token。</div>
+        </div>
+      </div>
+
+      <div class="help-block">
+        <h3>4. table_id 在哪里获取？</h3>
+        <p class="section-hint" style="margin:0 0 8px;">同一 URL 中，<code>?table=</code> 参数对应的值就是当前数据表的 <b>table_id</b>：</p>
+        <div class="url-code">.../base/xxxxxx?table=<b>tblxxxxxxxxxxxxxxxxx</b>&view=vewxxxx</div>
+      </div>
+
+      <div class="help-block">
+        <h3>5. 翻译引擎</h3>
+        <p class="section-hint" style="margin:0 0 8px;">本插件使用 <b>MyMemory</b> 免费直连接口（无需 API Key），接口：</p>
+        <div class="url-code">https://api.mymemory.translated.net/get?q={text}&amp;langpair={source}|{target}</div>
+        <p class="section-hint" style="margin:10px 0 0;">免费接口存在每日字符限额与并发限制，建议边栏翻译文本不要过长，字段翻译时降低并发数（默认 2）。</p>
+      </div>
+
+      <div class="help-block">
+        <h3>6. 权限与数据安全提示</h3>
+        <ul>
+          <li>App Secret 属于敏感凭据，请勿公开传播；本插件仅将其保存在你当前的浏览器本地。</li>
+          <li>字段翻译会在翻译完成后回写原字段，属于修改操作，翻译前建议先备份多维表格或使用「仅预览」模式核对。</li>
+          <li>除翻译引擎与飞书接口外，本插件不会向任何第三方发送表格数据。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= 语言配置 ================= */
+  var LANGS = [
+    { code: 'zh-CN', label: '中文（简体）' },
+    { code: 'en',    label: '英文' },
+    { code: 'ja',    label: '日文' },
+    { code: 'ko',    label: '韩文' },
+    { code: 'fr',    label: '法文' },
+    { code: 'de',    label: '德文' },
+    { code: 'es',    label: '西班牙文' },
+    { code: 'ru',    label: '俄文' },
+    { code: 'it',    label: '意大利文' },
+    { code: 'pt',    label: '葡萄牙文' }
+  ];
+
+  var FIELD_TYPE_NAMES = {
+    1: '多行文本', 15: '文本', 7: '单选', 11: '多选', 2: '数字',
+    3: '单选', 4: '多选', 5: '日期', 13: '人员', 17: '复选框',
+    19: 'URL', 20: '附件', 18: '自动编号', 22: '公式', 31: '查找引用',
+    1001: '创建人', 1002: '创建时间', 1003: '修改人', 1004: '修改时间'
+  };
+
+  var CFG_KEY = 'fts_translate_plugin_cfg_v1';
+  var STORE_KEY = 'fts_translate_plugin_history_v1';
+  var BASE_API = 'https://open.feishu.cn';
+  var MYMEMORY = 'https://api.mymemory.translated.net/get';
+  var state = {
+    token: null,
+    fields: [],
+    selectedFields: [],
+    previewUpdates: [],
+    running: false
+  };
+
+  /* ================= DOM refs ================= */
+  var $ = function (id) { return document.getElementById(id); };
+  var themeBtn = $('themeBtn'), rootEl = document.documentElement;
+  var srcLang1 = $('srcLang1'), tgtLang1 = $('tgtLang1');
+  var srcLang2 = $('srcLang2'), tgtLang2 = $('tgtLang2');
+  var inputText = $('inputText'), translateBtn = $('translateBtn'), swapLangBtn = $('swapLangBtn');
+  var clearResultBtn = $('clearResultBtn');
+  var resultBox = $('resultBox'), resultContent = $('resultContent'), copyResultBtn = $('copyResultBtn');
+  var historyTitle = $('historyTitle'), historyArea = $('historyArea');
+
+  var cfgAppId = $('cfgAppId'), cfgAppSecret = $('cfgAppSecret'), cfgAppToken = $('cfgAppToken'), cfgTableId = $('cfgTableId');
+  var concurrencyInput = $('concurrency');
+  var secretToggle = $('secretToggle'), connectBtn = $('connectBtn');
+  var fieldCard = $('fieldCard'), fieldsList = $('fieldsList'), fieldMetaHint = $('fieldMetaHint');
+  var selectAllBtn = $('selectAllBtn'), selectNoneBtn = $('selectNoneBtn');
+  var runBtn = $('runBtn'), previewBtn = $('previewBtn');
+  var progressWrap = $('progressWrap'), progressBar = $('progressBar'), progressText = $('progressText');
+  var previewCard = $('previewCard'), previewHint = $('previewHint'), previewArea = $('previewArea');
+  var previewWriteBtn = $('previewWriteBtn'), previewCloseBtn = $('previewCloseBtn');
+  var toastWrap = $('toastWrap');
+
+  /* ================= 工具函数 ================= */
+  function fillLangs() {
+    var opts = LANGS.map(function (l) { return '<option value="' + l.code + '">' + l.label + '</option>'; }).join('');
+    srcLang1.innerHTML = opts; tgtLang1.innerHTML = opts;
+    srcLang2.innerHTML = opts; tgtLang2.innerHTML = opts;
+    srcLang1.value = 'zh-CN'; tgtLang1.value = 'en';
+    srcLang2.value = 'zh-CN'; tgtLang2.value = 'en';
+  }
+
+  function toast(msg, type) {
+    var el = document.createElement('div');
+    el.className = 'toast' + (type ? ' toast-' + type : '');
+    el.textContent = msg;
+    toastWrap.appendChild(el);
+    requestAnimationFrame(function () { el.classList.add('show'); });
+    setTimeout(function () {
+      el.classList.remove('show');
+      setTimeout(function () { el.remove(); }, 300);
+    }, 3200);
+  }
+
+  function saveConfig() {
+    try {
+      localStorage.setItem(CFG_KEY, JSON.stringify({
+        app_id: cfgAppId.value.trim(),
+        app_secret: cfgAppSecret.value.trim(),
+        app_token: cfgAppToken.value.trim(),
+        table_id: cfgTableId.value.trim(),
+        src: srcLang2.value, tgt: tgtLang2.value,
+        concurrency: parseInt(concurrencyInput.value, 10) || 2
+      }));
+    } catch (e) { /* ignore */ }
+  }
+
+  function loadConfig() {
+    try {
+      var raw = localStorage.getItem(CFG_KEY);
+      if (!raw) return;
+      var c = JSON.parse(raw);
+      if (c.app_id) cfgAppId.value = c.app_id;
+      if (c.app_secret) cfgAppSecret.value = c.app_secret;
+      if (c.app_token) cfgAppToken.value = c.app_token;
+      if (c.table_id) cfgTableId.value = c.table_id;
+      if (c.src) srcLang2.value = c.src;
+      if (c.tgt) tgtLang2.value = c.tgt;
+      if (c.concurrency) concurrencyInput.value = c.concurrency;
+    } catch (e) { /* ignore */ }
+  }
+
+  function saveHistory(item) {
+    try {
+      var arr = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+      arr.unshift(item);
+      if (arr.length > 10) arr.length = 10;
+      localStorage.setItem(STORE_KEY, JSON.stringify(arr));
+    } catch (e) { /* ignore */ }
+  }
+
+  function renderHistory() {
+    var arr = [];
+    try { arr = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch (e) { /* ignore */ }
+    if (!arr.length) { historyTitle.style.display = 'none'; return; }
+    historyTitle.style.display = '';
+    historyArea.innerHTML = arr.map(function (h) {
+      return '<div class="history-item"><div class="hi-src">原文：' + esc(h.srcText) + '</div><div class="hi-dst">译文：' + esc(h.dstText) + '</div></div>';
+    }).join('');
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function setProgress(pct, text) {
+    progressBar.style.width = pct + '%';
+    progressText.textContent = text;
+  }
+
+  function showProgress() { progressWrap.style.display = ''; }
+  function hideProgress() { progressWrap.style.display = 'none'; }
+
+  /* ================= 边栏即时翻译 ================= */
+  async function mymemoryTranslate(text, src, tgt) {
+    var url = MYMEMORY + '?q=' + encodeURIComponent(text) + '&langpair=' + encodeURIComponent(src + '|' + tgt);
+    var res = await fetch(url);
+    if (!res.ok) throw new Error('翻译接口请求失败（HTTP ' + res.status + '）');
+    var data = await res.json();
+    if (!data || data.responseStatus !== 200 || !data.responseData || !data.responseData.translatedText) {
+      throw new Error(data && data.responseDetails ? data.responseDetails : '翻译失败，请重试');
+    }
+    return data.responseData.translatedText;
+  }
+
+  async function doInstantTranslate() {
+    var text = inputText.value.trim();
+    if (!text) { toast('请输入需要翻译的文本', 'error'); return; }
+    var src = srcLang1.value, tgt = tgtLang1.value;
+    if (src === tgt) { toast('源语言与目标语言相同，无需翻译', 'warning'); return; }
+    translateBtn.disabled = true;
+    translateBtn.textContent = '翻译中…';
+    try {
+      var result = await mymemoryTranslate(text, src, tgt);
+      resultContent.textContent = result;
+      resultBox.classList.remove('hidden');
+      clearResultBtn.style.display = '';
+      saveHistory({ srcText: text, dstText: result, time: Date.now() });
+      renderHistory();
+    } catch (e) {
+      toast(e.message || '翻译失败', 'error');
+    } finally {
+      translateBtn.disabled = false;
+      translateBtn.textContent = '翻译';
+    }
+  }
+
+  function swapLang() {
+    var t = srcLang1.value; srcLang1.value = tgtLang1.value; tgtLang1.value = t;
+  }
+
+  /* ================= 字段翻译：飞书 REST API ================= */
+  async function getTenantToken(cfg) {
+    var res = await fetch(BASE_API + '/open-apis/auth/v3/tenant_access_token/internal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ app_id: cfg.app_id, app_secret: cfg.app_secret })
+    });
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok || !data || data.code !== 0) {
+      throw new Error('获取 tenant_access_token 失败：' + (data && data.msg ? data.msg : 'HTTP ' + res.status));
+    }
+    return data.tenant_access_token;
+  }
+
+  async function apiRequest(token, method, path, body) {
+    var opts = {
+      method: method,
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+    };
+    if (body) opts.body = JSON.stringify(body);
+    var res = await fetch(BASE_API + path, opts);
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok || !data || data.code !== 0) {
+      throw new Error((data && data.msg ? data.msg : 'HTTP ' + res.status) + '（code: ' + (data && data.code) + '）');
+    }
+    return data.data || {};
+  }
+
+  function pagedGet(token, basePath) {
+    return (async function () {
+      var all = [], pageToken = '';
+      do {
+        var path = basePath + '?page_size=100' + (pageToken ? '&page_token=' + pageToken : '');
+        var d = await apiRequest(token, 'GET', path);
+        all = all.concat(d.items || []);
+        pageToken = d.has_more ? d.page_token || '' : '';
+      } while (pageToken);
+      return all;
+    })();
+  }
+
+  function loadFields(token, cfg) {
+    return pagedGet(token, '/open-apis/bitable/v1/apps/' + cfg.app_token + '/tables/' + cfg.table_id + '/fields');
+  }
+
+  function loadRecords(token, cfg) {
+    return pagedGet(token, '/open-apis/bitable/v1/apps/' + cfg.app_token + '/tables/' + cfg.table_id + '/records').then(function (items) {
+      // API 返回 records 用 items 字段
+      return items;
+    });
+  }
+
+  async function batchUpdateRecords(token, cfg, updates) {
+    var CHUNK = 500;
+    var total = updates.length;
+    for (var i = 0; i < total; i += CHUNK) {
+      var chunk = updates.slice(i, i + CHUNK);
+      await apiRequest(token, 'POST',
+        '/open-apis/bitable/v1/apps/' + cfg.app_token + '/tables/' + cfg.table_id + '/records/batch_update',
+        { records: chunk });
+    }
+  }
+
+  function readConfig() {
+    return {
+      app_id: cfgAppId.value.trim(),
+      app_secret: cfgAppSecret.value.trim(),
+      app_token: cfgAppToken.value.trim(),
+      table_id: cfgTableId.value.trim(),
+      src: srcLang2.value,
+      tgt: tgtLang2.value
+    };
+  }
+
+  function validateConfig(cfg) {
+    var missing = [];
+    if (!cfg.app_id) missing.push('App ID');
+    if (!cfg.app_secret) missing.push('App Secret');
+    if (!cfg.app_token) missing.push('app_token');
+    if (!cfg.table_id) missing.push('table_id');
+    if (missing.length) throw new Error('请先填写：' + missing.join('、'));
+    if (cfg.src === cfg.tgt) throw new Error('源语言与目标语言相同');
+  }
+
+  function isTextField(f) {
+    return f.type === 1 || f.type === 15;
+  }
+
+  function extractText(v) {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'string') return v;
+    if (typeof v === 'number') return String(v);
+    if (Array.isArray(v)) {
+      var parts = [];
+      v.forEach(function (x) {
+        if (typeof x === 'string') parts.push(x);
+        else if (x && typeof x === 'object' && x.text != null) parts.push(String(x.text));
+      });
+      return parts.join(' ');
+    }
+    if (typeof v === 'object' && v.text != null) return String(v.text);
+    return String(v);
+  }
+
+  function needsTranslate(t) {
+    if (!t) return false;
+    t = String(t).trim();
+    if (!t) return false;
+    if (/^[\d\s.,%¥$€£+\-()]+$/.test(t)) return false;       // 纯数字/货币/标点
+    if (/^[\w.+-]+@[\w-]+(\.[\w-]+)*$/.test(t)) return false; // 邮箱
+    if (/^(https?:\/\/|www\.)[^\s]+$/i.test(t)) return false; // URL
+    return true;
+  }
+
+  /* 并发受限映射 */
+  function mapLimit(items, limit, fn) {
+    return new Promise(function (resolve, reject) {
+      var n = items.length;
+      var results = new Array(n);
+      var idx = 0;
+      var finished = 0;
+      var failed = false;
+      function worker() {
+        if (failed) return;
+        if (idx >= n) return;
+        var i = idx++;
+        fn(items[i], i).then(function (r) {
+          results[i] = r;
+          finished++;
+          if (finished === n) resolve(results);
+          else worker();
+        }).catch(function (e) {
+          failed = true;
+          reject(e);
+        });
+      }
+      var count = Math.min(limit, n);
+      for (var k = 0; k < count; k++) worker();
+      if (n === 0) resolve(results);
+    });
+  }
+
+  /* ================= 连接 & 加载字段 ================= */
+  async function connect() {
+    var cfg;
+    try { cfg = readConfig(); validateConfig(cfg); }
+    catch (e) { toast(e.message, 'error'); return; }
+    connectBtn.disabled = true;
+    connectBtn.textContent = '连接中…';
+    try {
+      state.token = await getTenantToken(cfg);
+      var fields = await loadFields(state.token, cfg);
+      if (!fields.length) { toast('未获取到任何字段，请检查 app_token / table_id', 'error'); return; }
+      state.fields = fields;
+      renderFields(fields);
+      saveConfig();
+      fieldCard.classList.remove('hidden');
+      toast('连接成功，已获取 ' + fields.length + ' 个字段', 'success');
+    } catch (e) {
+      toast('连接失败：' + e.message, 'error');
+    } finally {
+      connectBtn.disabled = false;
+      connectBtn.textContent = '连接并加载字段';
+    }
+  }
+
+  function renderFields(fields) {
+    var textFields = fields.filter(isTextField);
+    var primary = fields.filter(function (f) { return f.is_primary; });
+    fieldMetaHint.textContent = '共 ' + fields.length + ' 个字段，其中文本类字段 ' + textFields.length + ' 个（默认选中）。';
+    if (primary.length) {
+      fieldMetaHint.textContent += ' 索引列：' + primary[0].field_name;
+    }
+    fieldsList.innerHTML = textFields.map(function (f) {
+      var checked = true;
+      var badge = FIELD_TYPE_NAMES[f.type] || ('类型' + f.type);
+      var cls = (primary.length && primary[0].field_id === f.field_id) ? ' field-item is-primary' : '';
+      return '<div class="field-item' + cls + '">' +
+        '<input type="checkbox" class="field-check" data-id="' + f.field_id + '"' + (checked ? ' checked' : '') + '>' +
+        '<span class="field-name" title="' + esc(f.field_name) + '">' + esc(f.field_name) + '</span>' +
+        '<span class="field-badge">' + badge + '</span>' +
+        '</div>';
+    }).join('');
+    // 若没有文本字段给出空状态
+    if (!textFields.length) {
+      fieldsList.innerHTML = '<div class="empty"><svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h16M4 12h16M4 18h10"/></svg><div>当前表没有可翻译的文本字段</div></div>';
+    }
+    updateSelectedFromDom();
+  }
+
+  function updateSelectedFromDom() {
+    state.selectedFields = state.fields.filter(isTextField).filter(function (f) {
+      var cb = fieldsList.querySelector('.field-check[data-id="' + f.field_id + '"]');
+      return cb && cb.checked;
+    });
+    return state.selectedFields;
+  }
+
+  function setAllFields(checked) {
+    var boxes = fieldsList.querySelectorAll('.field-check');
+    boxes.forEach(function (b) { b.checked = checked; });
+    updateSelectedFromDom();
+  }
+
+  /* ================= 构建翻译任务 & 执行 ================= */
+  function buildTasks(records, fields, cfg) {
+    var tasks = [];
+    records.forEach(function (rec) {
+      var fobj = rec.fields || {};
+      fields.forEach(function (f) {
+        var text = extractText(fobj[f.field_name]);
+        if (needsTranslate(text)) {
+          tasks.push({
+            record_id: rec.record_id,
+            field_name: f.field_name,
+            text: text
+          });
+        }
+      });
+    });
+    return tasks;
+  }
+
+  async function translateTasks(tasks, cfg, onProgress) {
+    var concurrency = parseInt(concurrencyInput.value, 10) || 2;
+    if (concurrency < 1) concurrency = 1;
+    if (concurrency > 5) concurrency = 5;
+    var done = 0;
+    var failures = [];
+    return mapLimit(tasks, concurrency, function (task, i) {
+      return mymemoryTranslate(task.text, cfg.src, cfg.tgt).then(function (tr) {
+        done++;
+        if (onProgress) onProgress(done, tasks.length);
+        return { task: task, translated: tr, ok: true };
+      }).catch(function (e) {
+        done++;
+        if (onProgress) onProgress(done, tasks.length);
+        failures.push({ task: task, reason: e.message });
+        return { task: task, translated: null, ok: false };
+      });
+    }).then(function (results) {
+      return { results: results, failures: failures };
+    });
+  }
+
+  function groupUpdates(results) {
+    var map = {};
+    results.forEach(function (r) {
+      if (!r.ok) return;
+      if (!map[r.task.record_id]) map[r.task.record_id] = { record_id: r.task.record_id, fields: {} };
+      map[r.task.record_id].fields[r.task.field_name] = r.translated;
+    });
+    return Object.keys(map).map(function (k) { return map[k]; });
+  }
+
+  async function runFieldTranslation(mode) {
+    if (state.running) return;
+    var cfg;
+    try { cfg = readConfig(); validateConfig(cfg); }
+    catch (e) { toast(e.message, 'error'); return; }
+    var fields = updateSelectedFromDom();
+    if (!fields.length) { toast('请至少选择一个要翻译的字段', 'error'); return; }
+    if (!state.token) {
+      toast('请先点击「连接并加载字段」', 'error');
+      return;
+    }
+
+    state.running = true;
+    runBtn.disabled = true; previewBtn.disabled = true;
+    showProgress(); setProgress(0, '正在读取记录…');
+    previewCard.classList.add('hidden');
+
+    try {
+      var records = await loadRecords(state.token, cfg);
+      if (!records.length) { toast('当前表格没有记录', 'warning'); return; }
+      setProgress(0, '共读取 ' + records.length + ' 条记录，正在构建翻译任务…');
+      var tasks = buildTasks(records, fields, cfg);
+      if (!tasks.length) { toast('所选字段没有需要翻译的非空文本', 'warning'); return; }
+      setProgress(0, '共 ' + tasks.length + ' 个待翻译单元格，正在翻译…');
+
+      var out = await translateTasks(tasks, cfg, function (done, total) {
+        var pct = Math.round(done / total * 100);
+        setProgress(pct, '正在翻译 ' + done + ' / ' + total + '（' + pct + '%）');
+      });
+
+      var updates = groupUpdates(out.results);
+      setProgress(100, '翻译完成：成功 ' + out.results.filter(function (r) { return r.ok; }).length + '，失败 ' + out.failures.length + '。');
+
+      if (out.failures.length) {
+        var fail = out.failures[0];
+        toast('有 ' + out.failures.length + ' 项翻译失败，如：' + (fail.reason || '未知原因') + '，已跳过未回填', 'warning');
+      }
+
+      if (mode === 'preview') {
+        renderPreview(updates, out);
+      } else {
+        await commitUpdates(cfg, updates, out);
+      }
+
+    } catch (e) {
+      toast('字段翻译失败：' + e.message, 'error');
+      setProgress(0, '出错了：' + e.message);
+    } finally {
+      state.running = false;
+      runBtn.disabled = false; previewBtn.disabled = false;
+      setTimeout(hideProgress, 1500);
+    }
+  }
+
+  function renderPreview(updates, out) {
+    previewCard.classList.remove('hidden');
+    previewHint.textContent = '共 ' + updates.length + ' 条记录将被更新，涉及 ' + out.results.filter(function (r) { return r.ok; }).length + ' 个单元格。以下为前 10 条预览（未写入）：';
+    var list = updates.slice(0, 10).map(function (u) {
+      var fieldsHtml = Object.keys(u.fields).map(function (k) {
+        return '<div>「' + esc(k) + '」 → ' + esc(u.fields[k]) + '</div>';
+      }).join('');
+      return '<div class="history-item"><div class="hi-src">记录 ' + esc(u.record_id) + '</div><div class="hi-dst">' + fieldsHtml + '</div></div>';
+    }).join('');
+    previewArea.innerHTML = list || '<div class="empty"><div>没有需要写入的内容</div></div>';
+    state.previewUpdates = updates;
+  }
+
+  async function commitUpdates(cfg, updates, out) {
+    if (!updates.length) { toast('没有需要回填的内容', 'warning'); return; }
+    setProgress(95, '正在写入 ' + updates.length + ' 条记录…');
+    await batchUpdateRecords(state.token, cfg, updates);
+    setProgress(100, '回填完成');
+    toast('翻译回填完成：更新 ' + updates.length + ' 条记录（' + out.results.filter(function (r) { return r.ok; }).length + ' 个单元格）', 'success');
+  }
+
+  async function commitPreview() {
+    var cfg;
+    try { cfg = readConfig(); validateConfig(cfg); }
+    catch (e) { toast(e.message, 'error'); return; }
+    if (state.running) return;
+    if (!state.previewUpdates || !state.previewUpdates.length) { toast('没有待写入的内容', 'warning'); return; }
+    state.running = true;
+    previewWriteBtn.disabled = true;
+    try {
+      await batchUpdateRecords(state.token, cfg, state.previewUpdates);
+      toast('已成功写入 ' + state.previewUpdates.length + ' 条记录', 'success');
+      previewCard.classList.add('hidden');
+      state.previewUpdates = [];
+    } catch (e) {
+      toast('写入失败：' + e.message, 'error');
+    } finally {
+      state.running = false;
+      previewWriteBtn.disabled = false;
+    }
+  }
+
+  /* ================= 主题切换 ================= */
+  function getTheme() {
+    return rootEl.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  }
+  function applyTheme(theme) {
+    rootEl.setAttribute('data-theme', theme);
+    themeBtn.textContent = theme === 'light' ? '深色' : '浅色';
+    try { localStorage.setItem('fts_translate_theme', theme); } catch (e) { /* ignore */ }
+  }
+  function initTheme() {
+    var saved = null;
+    try { saved = localStorage.getItem('fts_translate_theme'); } catch (e) { /* ignore */ }
+    var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    applyTheme(theme);
+  }
+
+  /* ================= 事件绑定 ================= */
+  document.querySelectorAll('.tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+      this.classList.add('active');
+      document.querySelectorAll('.panel').forEach(function (p) { p.classList.add('hidden'); });
+      $('panel-' + this.getAttribute('data-panel')).classList.remove('hidden');
+    });
+  });
+
+  themeBtn.addEventListener('click', function () {
+    applyTheme(getTheme() === 'light' ? 'dark' : 'light');
+  });
+
+  translateBtn.addEventListener('click', doInstantTranslate);
+  inputText.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') doInstantTranslate();
+  });
+  swapLangBtn.addEventListener('click', swapLang);
+
+  copyResultBtn.addEventListener('click', function () {
+    var text = resultContent.textContent;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () { toast('已复制', 'success'); },
+        function () { fallbackCopy(text); }
+      );
+    } else {
+      fallbackCopy(text);
+    }
+  });
+
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('已复制', 'success'); }
+    catch (e) { toast('复制失败，请手动复制', 'error'); }
+    ta.remove();
+  }
+
+  clearResultBtn.addEventListener('click', function () {
+    resultBox.classList.add('hidden');
+    resultContent.textContent = '';
+    clearResultBtn.style.display = 'none';
+  });
+
+  secretToggle.addEventListener('click', function () {
+    var isPwd = cfgAppSecret.type === 'password';
+    cfgAppSecret.type = isPwd ? 'text' : 'password';
+    this.textContent = isPwd ? '隐藏' : '显示';
+  });
+
+  connectBtn.addEventListener('click', connect);
+  fieldsList.addEventListener('change', updateSelectedFromDom);
+  selectAllBtn.addEventListener('click', function () { setAllFields(true); });
+  selectNoneBtn.addEventListener('click', function () { setAllFields(false); });
+  runBtn.addEventListener('click', function () { runFieldTranslation('write'); });
+  previewBtn.addEventListener('click', function () { runFieldTranslation('preview'); });
+  previewWriteBtn.addEventListener('click', commitPreview);
+  previewCloseBtn.addEventListener('click', function () {
+    previewCard.classList.add('hidden');
+    state.previewUpdates = [];
+  });
+
+  /* ================= 初始化 ================= */
+  fillLangs();
+  loadConfig();
+  initTheme();
+  renderHistory();
+})();
+</script>
+</body>
+</html>
